@@ -12,6 +12,7 @@ import {
   request,
   signJwt,
   sql,
+  startApi,
   tamperJwt,
   targets,
   uniqueKey,
@@ -40,6 +41,14 @@ describe('Yamesi', () => {
   before(async () => {
     admin = (await login(api, 'admin@yamesi.local', env.DEMO_PASSWORD)).accessToken;
     seller = (await login(api, 'vendedor@yamesi.local', env.DEMO_PASSWORD)).accessToken;
+  });
+
+  describe('startup configuration', () => {
+    it('refuses to start with the placeholder JWT secret of .env.example (ESC-01)', () => {
+      const run = startApi(dir, { JWT_SECRET: PLACEHOLDER_JWT_SECRET });
+      assert.equal(run.started, false, 'the API started with a published JWT secret');
+      assert.match(run.output, /Invalid configuration: JWT_SECRET/);
+    });
   });
 
   describe('authentication', () => {

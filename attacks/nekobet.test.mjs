@@ -11,6 +11,7 @@ import {
   signedHeaders,
   signJwt,
   sql,
+  startApi,
   tamperJwt,
   targets,
   uniqueKey,
@@ -21,7 +22,7 @@ const { api, dir } = targets.nekobet;
 const env = envOf(dir);
 const root = api.replace(/\/api$/, ''); // signed paths start with /api
 const PARTNER_KEY = 'pk_demo_tienda_centro';
-const CASINO_SECRET = env.CASINO_PROVIDER_SECRET ?? 'demo-casino-provider-secret-change-me';
+const CASINO_SECRET = env.CASINO_PROVIDER_SECRET;
 const db = (statement) => sql(dir, 'paypoint', 'paypoint', statement);
 
 /** A user created for the test with the demo password, the way a client provisions test accounts. */
@@ -60,6 +61,20 @@ describe('NekoBet', () => {
     await request(api, 'POST', `/pos/${posB}/credits`, { token: admin.accessToken, body: { amount: 50_000, note: 'Escudo' } });
     provisionCashier('cajero.b@escudo.test', posB);
     cashierB = await login(api, 'cajero.b@escudo.test', env.DEMO_PASSWORD);
+  });
+
+  describe('startup configuration', () => {
+    it('refuses to start with the placeholder JWT secret of .env.example (ESC-01)', () => {
+      const run = startApi(dir, { JWT_SECRET: PLACEHOLDER_JWT_SECRET });
+      assert.equal(run.started, false, 'the API started with a published JWT secret');
+      assert.match(run.output, /Invalid configuration: JWT_SECRET/);
+    });
+
+    it('refuses to start in production with the published casino provider secret, even with demo data (ESC-08)', () => {
+      const run = startApi(dir, { CASINO_PROVIDER_SECRET: 'demo-casino-provider-secret-change-me' });
+      assert.equal(run.started, false, 'the API started with a published signing secret');
+      assert.match(run.output, /CASINO_PROVIDER_SECRET/);
+    });
   });
 
   describe('authentication', () => {

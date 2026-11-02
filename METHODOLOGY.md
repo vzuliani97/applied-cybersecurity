@@ -46,7 +46,7 @@ Test categories follow the OWASP Web Security Testing Guide v4.2. Findings map t
 
 | Tool | Use |
 |---|---|
-| Node.js 24 scripts in [`attacks/`](attacks/) | Every manual test, written as a repeatable test with no dependencies |
+| Node.js 24 scripts in [`attacks/`](attacks/) | Every manual test, written as a repeatable test with no dependencies (38 tests) |
 | Trivy 0.69.3 (pinned by digest) | Image vulnerabilities |
 | OWASP ZAP 2.17.0 baseline (pinned by digest) | Passive scan of the running stacks |
 | curl, Docker, `psql` | Probes and test accounts |
@@ -54,8 +54,16 @@ Test categories follow the OWASP Web Security Testing Guide v4.2. Findings map t
 
 ## Severity
 
-CVSS 3.1 base scores, computed from the vector shown in each finding. Findings that come from a scanner
-(ESC-07, ESC-12) keep the scanner's rating, because they group many issues.
+- **CVSS 3.1 base scores** for nine findings, computed from the vector shown in each one.
+- **Configuration-dependent flaws are scored as if the configuration is present,** when it is a reasonable one,
+  following section 2.3.3 of the [CVSS 3.1 User Guide](https://www.first.org/cvss/v3.1/user-guide). A default
+  or documented setup counts as reasonable. This moved ESC-01 from 7.4 to 9.1 and ESC-08 from 6.5 to 8.2 after
+  an independent review; both findings explain the change.
+- **Attack complexity is high (`AC:H`) only for conditions the attacker must win in the attack itself:**
+  capturing a signed request in transit (ESC-02) or guessing a weak password (ESC-11).
+- **Scanner findings keep the scanner's severity** (Trivy for ESC-07, OWASP ZAP for ESC-12). They group many
+  issues and are not CVSS scores of these apps.
+- **ESC-06 is informational** and not scored: no exploitable impact was found.
 
 ## Not covered
 

@@ -1,6 +1,6 @@
 // Helpers shared by the attack suites: targets, HTTP, JWT forging, HMAC signing and test fixtures.
 // Node's standard library only, so the suite runs anywhere Node 24 runs.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -110,6 +110,24 @@ export function signedHeaders({ secret, method, path, raw = '', apiKey, idempote
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
   if (raw) headers['Content-Type'] = 'application/json';
   return headers;
+}
+
+// --- Startup configuration ------------------------------------------------------------------
+
+/**
+ * Starts a throwaway copy of a target's API container with some variables overridden. A refused
+ * configuration makes it exit at once; one it accepts keeps it running, so after 20 seconds it
+ * counts as started and the container is removed.
+ */
+export function startApi(dir, overrides) {
+  const name = uniqueKey('escudo-startup');
+  const env = Object.entries(overrides).flatMap(([key, value]) => ['-e', `${key}=${value}`]);
+  const run = spawnSync('docker', ['compose', '--project-directory', dir, 'run', '--rm', '--no-deps', '--name', name, ...env, 'backend'], {
+    encoding: 'utf8',
+    timeout: 20_000,
+  });
+  spawnSync('docker', ['rm', '-f', name]);
+  return { started: run.status === null || run.status === 0, output: `${run.stdout}${run.stderr}` };
 }
 
 // --- Fixtures --------------------------------------------------------------------------------

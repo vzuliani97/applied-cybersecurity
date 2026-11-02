@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Severity | **High**, CVSS 3.1 7.4 (`AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N`) |
+| Severity | **Critical**, CVSS 3.1 9.1 (`AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N`); first published as 7.4 with `AC:H`, see Scoring |
 | Weakness | CWE-1188 Initialization of a Resource with an Insecure Default; OWASP A05:2021 Security Misconfiguration |
 | Affected | NekoBet `6b0483b`, Yamesi `15f0bf8` (`backend/src/config.ts`, `.env.example`, `Makefile`, CI) |
 | Status | Fixed: nekobet `1b7353c`, yamesi `f606dad` |
@@ -34,7 +34,24 @@ same `cp` in CI. The exploit was run against NekoBet only.
 ## Impact
 
 Full administrator access: list and credit stores (NekoBet), read margins, audit trail and invoices, and edit
-the catalog (Yamesi). The precondition is a deployment that kept the example value, hence `AC:H`.
+the catalog (Yamesi).
+
+## Scoring
+
+The first version of this report scored 7.4, with `AC:H`. The reasoning was that the attack only works where a
+deployment kept the example value, which the attacker does not control. An independent review questioned that,
+and the CVSS 3.1 documents side with the review:
+
+- The [User Guide](https://www.first.org/cvss/v3.1/user-guide), section 2.3.3 "Assume Vulnerable
+  Configurations", says a flaw that depends on a configuration is scored "assuming it is in that configuration",
+  unless the configuration is unreasonable, one that deliberately puts the target in a vulnerable state.
+- CVSS 3.1 removed "the presence of certain system configuration settings" from the conditions that make
+  attack complexity high, which v3.0 had listed.
+
+Copying `.env.example` was this project's documented quick start and exactly what its own CI did, so the
+configuration is reasonable. With it in place, the attack is one HMAC computation: `AC:L`, base score **9.1**.
+The 7.4 figure described the risk to a deployment that followed the README's advice to change the values. That
+is an environmental consideration, and the CVSS Environmental metrics, not the base score, are where it belongs.
 
 ## Fix
 
