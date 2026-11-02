@@ -1,11 +1,17 @@
-# Escudo
+# Applied Cyber Security
 
-[![Attack suite](https://github.com/vzuliani97/escudo/actions/workflows/ci.yml/badge.svg)](https://github.com/vzuliani97/escudo/actions/workflows/ci.yml)
+[![Attack suite](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml)
 
-A security assessment of my own applications: [NekoBet](https://github.com/vzuliani97/nekobet),
-[Yamesi](https://github.com/vzuliani97/yamesi), and the [OpsCircuit](https://github.com/vzuliani97/opscircuit)
-cluster that runs NekoBet. It found 12 issues, and all of them are fixed. Each fix has a regression test, and
-the attacks run in the CI of both apps and in this repository's CI.
+Three units of my Advanced Diploma of Information Technology (Cyber Security), ICT60220, applied to the systems I
+built: [NekoBet](https://github.com/vzuliani97/nekobet), [Yamesi](https://github.com/vzuliani97/yamesi) and the
+[OpsCircuit](https://github.com/vzuliani97/opscircuit) cluster that runs NekoBet. Formerly *Escudo*; the finding
+IDs keep its `ESC` prefix.
+
+| Diploma unit | Applied here | Result |
+|---|---|---|
+| ICTCYS603 Undertake penetration testing for organisations | A gray-box penetration test: [findings](#findings), [methodology](METHODOLOGY.md) and [the attacks as tests](attacks/) | 12 findings, all fixed; 38 attacks run in both apps' CI |
+| ICTCYS608 Perform cyber security risk assessments | [Risk register](RISK_REGISTER.md) | 12 risks rated before and after controls; 1 High, 5 Medium and 6 Low remain, each with a treatment |
+| ICTCYS604 Implement best practices for identity management | [Identity and access review](IDENTITY_REVIEW.md) | 10 identities, people and machines, with what holds up and 5 recommendations |
 
 **Scope and limits.** The targets are three portfolio systems I wrote. They run locally with synthetic data:
 no production system, no third-party target, and no TLS (the stacks serve plain HTTP on localhost). The
@@ -68,17 +74,17 @@ in three files (NekoBet, Yamesi, network exposure). They run in three places:
 
 | Finding | Regression test |
 |---|---|
-| ESC-01 | Escudo: each API refuses to start with the placeholder, and a token signed with it gets 401. App unit tests on the configuration. |
-| ESC-02 | Escudo: a replay under a new key gets 401; a replay under its own key returns the original sale; the balance moves once. App unit and e2e tests. |
-| ESC-03 | Escudo network test (ports 8082, 3030, 9090, while the cluster runs). OpsCircuit `make validate`. |
-| ESC-04 | Escudo: the photo served from the bucket has no GPS. Yamesi unit (6) and e2e tests. |
-| ESC-05 | Escudo: a seller gets no costs, an admin does. Yamesi e2e test. |
-| ESC-06 | Escudo: the JPEG-prefixed HTML file gets 400. Yamesi unit test. |
+| ESC-01 | Attack suite: each API refuses to start with the placeholder, and a token signed with it gets 401. App unit tests on the configuration. |
+| ESC-02 | Attack suite: a replay under a new key gets 401; a replay under its own key returns the original sale; the balance moves once. App unit and e2e tests. |
+| ESC-03 | Network attack test (ports 8082, 3030, 9090, while the cluster runs). OpsCircuit `make validate`. |
+| ESC-04 | Attack suite: the photo served from the bucket has no GPS. Yamesi unit (6) and e2e tests. |
+| ESC-05 | Attack suite: a seller gets no costs, an admin does. Yamesi e2e test. |
+| ESC-06 | Attack suite: the JPEG-prefixed HTML file gets 400. Yamesi unit test. |
 | ESC-07 | App CI only: the Trivy gate. |
-| ESC-08 | Escudo: the API refuses to start in production mode with the published casino secret. NekoBet unit test. |
-| ESC-09 | Escudo network test (ports 8081, 8083, 9002). |
+| ESC-08 | Attack suite: the API refuses to start in production mode with the published casino secret. NekoBet unit test. |
+| ESC-09 | Network attack test (ports 8081, 8083, 9002). |
 | ESC-10 | App CI only: the image-metadata check over committed images. |
-| ESC-11 | Escudo: a fresh account gets 401 five times, then 429 for the right password. App e2e tests. |
+| ESC-11 | Attack suite: a fresh account gets 401 five times, then 429 for the right password. App e2e tests. |
 | ESC-12 | App CI only: the ZAP baseline gate. |
 
 Of the 38 tests, 17 guard the findings above and 18 attack the controls in "What held up". The other 3 are
@@ -99,7 +105,10 @@ baselines: a correctly signed partner call, an admin who still sees costs, and a
 The tests inside each app cover the same fixes at the unit and e2e level: NekoBet went from 54 to 60 tests,
 Yamesi from 54 to 64.
 
-## Observations and accepted risks
+## Accepted and open risks
+
+Every risk that is accepted or still open, including the ones below, is rated and tracked in the
+[risk register](RISK_REGISTER.md).
 
 - **Stateless tokens.** The API trusts the role inside a valid JWT and does not look the user up, which is
   why ESC-01 worked even for a user that does not exist. A disabled user or a changed role keeps working until
