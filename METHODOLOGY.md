@@ -16,6 +16,10 @@
 - Window: 2026-11-01, a review of the published repositories plus automated scans (ESC-07 to ESC-12, fixed
   the same day); 2026-11-02, manual testing (ESC-01 to ESC-06).
 
+**Background.** The method applies two units of my Advanced Diploma of IT (Cyber Security), ICT60220:
+ICTCYS603 "Undertake penetration testing for organisations" and ICTCYS608 "Perform cyber security risk
+assessments".
+
 ## Threat model
 
 | Asset | Who could want it | Entry points |
