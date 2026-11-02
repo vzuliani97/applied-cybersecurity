@@ -1,0 +1,53 @@
+name: Attack suite
+
+# Runs every attack of the assessment against the latest main of both apps. A change in either app
+# that reopens a finding fails this workflow, even though the change was made in the other repository.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday, to retest commits made to the apps since the last run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attacks:
+    name: Attacks against NekoBet and Yamesi
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: escudo
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vzuliani97/nekobet
+          path: nekobet
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vzuliani97/yamesi
+          path: yamesi
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Start both apps with random secrets
+        run: |
+          for app in nekobet yamesi; do
+            make -C "$app" .env
+            docker compose --project-directory "$app" up -d --build --wait
+          done
+      - name: Run the attack suite
+        working-directory: escudo
+        run: make attack
+      - name: API logs
+        if: failure()
+        run: |
+          for app in nekobet yamesi; do
+            docker compose --project-directory "$app" logs --tail 80 backend
+          done
