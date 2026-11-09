@@ -132,3 +132,7 @@ METHODOLOGY.md   scope, threat model, coverage, tools, severity, limits
 findings/        one file per finding: evidence, impact, fix, regression tests
 attacks/         the attacks as tests (node:test), plus lib.mjs with JWT, HMAC, EXIF and startup helpers
 ```
+
+## Portfolio
+
+One of four connected projects at [vzuliani97.github.io](https://vzuliani97.github.io). The others: [Yamesi Core](https://github.com/vzuliani97/yamesi) (business operations, online at [yamesi.netlify.app](https://yamesi.netlify.app)), [NekoBet](https://github.com/vzuliani97/nekobet) (transactions and real time, online at [nekobet.netlify.app](https://nekobet.netlify.app)), [OpsCircuit](https://github.com/vzuliani97/opscircuit) (delivery and operations of NekoBet). Case study: https://vzuliani97.github.io/
