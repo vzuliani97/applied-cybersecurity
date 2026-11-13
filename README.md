@@ -125,6 +125,15 @@ Every risk that is accepted or still open, including the ones below, is rated an
 - **ESC-06's residual risk:** a well-formed JPEG with bytes appended after its image data is still accepted.
   Those bytes are served as `image/jpeg`.
 
+## Detection
+
+A fix stops an attack but tells no one it happened. Yamesi now logs every attempt it refuses as a security
+event, and seven rules, each mapped to MITRE ATT&CK or OWASP and to the finding it watches, turn the events into
+alerts. In a drill on 2026-11-13, the 13 Yamesi attacks of this suite, plus two login attacks the lockout does
+not stop, raised 7 alerts from 40 events. Details, the drill log and what the rules cannot see:
+[Yamesi's detection guide](https://github.com/vzuliani97/yamesi/blob/main/docs/SECURITY_DETECTION.md). NekoBet
+does not log security events yet.
+
 ## Layout
 
 ```text
@@ -135,4 +144,4 @@ attacks/         the attacks as tests (node:test), plus lib.mjs with JWT, HMAC, 
 
 ## Portfolio
 
-One of four connected projects at [vzuliani97.github.io](https://vzuliani97.github.io). The others: [Yamesi Core](https://github.com/vzuliani97/yamesi) (business operations, online at [yamesi.netlify.app](https://yamesi.netlify.app)), [NekoBet](https://github.com/vzuliani97/nekobet) (transactions and real time, online at [nekobet.netlify.app](https://nekobet.netlify.app)), [OpsCircuit](https://github.com/vzuliani97/opscircuit) (delivery and operations of NekoBet). Case study: https://vzuliani97.github.io/
+One of four connected projects at [vzuliani97.github.io](https://vzuliani97.github.io). The others: [Yamesi Core](https://github.com/vzuliani97/yamesi) (business operations, online at [yamesi.netlify.app](https://yamesi.netlify.app)), [NekoBet](https://github.com/vzuliani97/nekobet) (transactions and real time, online at [nekobet.netlify.app](https://nekobet.netlify.app)), [OpsCircuit](https://github.com/vzuliani97/opscircuit) (delivery and operations of NekoBet). Case study: https://vzuliani97.github.io/work/security/
