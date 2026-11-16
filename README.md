@@ -19,7 +19,7 @@ IDs keep its `ESC` prefix.
 vulnerable and fixed. Anyone can attack them at **[valterzuliani.com/range](https://valterzuliani.com/range/)**:
 the API runs inside the visitor's browser through a service worker, with fictional data, so nothing vulnerable
 is exposed online. Several of its fixes are the ones this assessment confirmed in NekoBet and Yamesi
-(`alg: none` rejected, ESC-11's lockout, the balance updated in one step). 25 tests run in
+(`alg: none` rejected, ESC-11's lockout, the balance updated in one step). While an attack runs, the page shows the server's decisions and its data changing live. 32 tests run in
 [its own CI](.github/workflows/range.yml).
 
 **Scope and limits.** The targets are three portfolio systems I wrote. They run locally with synthetic data:

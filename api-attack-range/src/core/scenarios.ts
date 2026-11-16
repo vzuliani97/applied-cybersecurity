@@ -1,7 +1,7 @@
-import { ACCOUNTS, COUPON, LOCKOUT, type Req, type Res, type Vuln } from "./api.ts";
+import { ACCOUNTS, COUPON, LOCKOUT, type L, type Req, type Res, type Vuln } from "./api.ts";
 import { jsonB64url } from "./crypto.ts";
 
-export type L = { es: string; en: string };
+export type { L };
 
 export interface RunCtx {
   /** Sends a request. `key` marks the exchange that decides the outcome. */

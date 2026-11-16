@@ -1,4 +1,4 @@
-import { VULNS, VULN_HEADER, ACCOUNTS, createRange, type Req, type Res, type Vuln } from "../core/api.ts";
+import { VULNS, VULN_HEADER, ACCOUNTS, createRange, type RangeEvent, type Req, type Res, type Snapshot, type Vuln } from "../core/api.ts";
 import { SCENARIOS, type L, type Scenario } from "../core/scenarios.ts";
 
 type Lang = "es" | "en";
@@ -58,6 +58,17 @@ const UI = {
   showMore: { es: "Ver las otras {n} peticiones", en: "Show the other {n} requests" },
   hint: { es: "Prueba primero en Vulnerable y luego en Corregido.", en: "Try Vulnerable first, then Fixed." },
   source: { es: "Código en GitHub", en: "Code on GitHub" },
+  attacker: { es: "Atacante", en: "Attacker" },
+  server: { es: "Servidor", en: "Server" },
+  slow: { es: "Cámara lenta", en: "Slow motion" },
+  users: { es: "Usuarios", en: "Users" },
+  role: { es: "rol", en: "role" },
+  deleted: { es: "eliminado", en: "deleted" },
+  balance: { es: "Saldo de Lucía", en: "Lucía's balance" },
+  credits: { es: "canjes del cupón", en: "coupon credits" },
+  failures: { es: "Fallos de login de Mateo", en: "Mateo's failed logins" },
+  locked: { es: "bloqueada {s} s", en: "locked {s} s" },
+  waiting: { es: "Esperando la primera petición…", en: "Waiting for the first request…" },
   credit: {
     es: "Inspirado en OWASP crAPI, VAmPI y la PortSwigger Web Security Academy. Código propio.",
     en: "Inspired by OWASP crAPI, VAmPI and the PortSwigger Web Security Academy. Original code.",
@@ -79,6 +90,39 @@ let consoleResult: { log: Exchange[]; error?: string } | null = null;
 let consoleNote = "";
 
 let transportKind: "sw" | "page" | "pending" = "pending";
+
+// ---------- live view ----------
+let slow = true;
+const SLOW_MS = 260;
+let liveOn = false;
+let liveStart = 0;
+let liveEvents: RangeEvent[] = [];
+let liveStream: Exchange[] = [];
+let snap: Snapshot | null = null;
+let prevSnap: Snapshot | null = null;
+let roster: Snapshot["users"] = [];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function startLive(log: Exchange[]): void {
+  liveOn = true;
+  liveStart = performance.now();
+  liveEvents = [];
+  liveStream = log;
+  snap = prevSnap = null;
+  roster = [];
+}
+
+function onEvent(ev: RangeEvent): void {
+  if (!liveOn) return;
+  // The reset that opens each run sets the roster everything else is compared with.
+  if (!roster.length || /reinici/i.test(ev.msg.es)) roster = ev.snapshot.users.map((u) => ({ ...u }));
+  if (/reinici/i.test(ev.msg.es)) return;
+  liveEvents.push({ ...ev, at: Math.round(performance.now() - liveStart) });
+  if (liveEvents.length > 300) liveEvents.shift();
+  prevSnap = snap;
+  snap = ev.snapshot;
+  renderLive();
+}
 let pageRange: ReturnType<typeof createRange> | null = null;
 
 function initialLang(): Lang {
@@ -117,9 +161,17 @@ async function startTransport(): Promise<void> {
   transportKind = "page";
 }
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (e: MessageEvent) => {
+    const d = e.data as { type?: string; ev?: RangeEvent };
+    if (d?.type === "range-event" && d.ev) onEvent(d.ev);
+  });
+  navigator.serviceWorker.startMessages();
+}
+
 async function transport(req: Req): Promise<Res> {
   await transportReady;
-  if (transportKind === "page" && pageRange) return pageRange.handle(req);
+  if (transportKind === "page" && pageRange) return pageRange.handle(req, onEvent);
   const r = await fetch(req.path.replace(/^\//, ""), { method: req.method, headers: req.headers, body: req.body, cache: "no-store" });
   const headers: Record<string, string> = {};
   r.headers.forEach((v, k) => (headers[k] = v));
@@ -129,9 +181,11 @@ async function transport(req: Req): Promise<Res> {
 function sender(vulns: Vuln[], log: Exchange[]) {
   return async (req: Req, opts?: { key?: boolean }): Promise<Res> => {
     const full: Req = { ...req, headers: { ...req.headers, [VULN_HEADER]: vulns.join(",") } };
+    if (slow) await sleep(SLOW_MS);
     const t0 = performance.now();
     const res = await transport(full);
     log.push({ req: full, res, ms: Math.round(performance.now() - t0), key: !!opts?.key });
+    renderLive();
     return res;
   };
 }
@@ -144,6 +198,7 @@ async function launch(s: Scenario): Promise<void> {
   const mode = modes.get(s.id)!;
   const log: Exchange[] = [];
   results.set(s.id, { outcome: null, log, mode });
+  startLive(log);
   render();
   try {
     await transport({ method: "POST", path: "/api/_reset", headers: {} });
@@ -155,6 +210,7 @@ async function launch(s: Scenario): Promise<void> {
         if (btn) btn.textContent = `${t(UI.running)} ${progress}`;
       },
     });
+    await sleep(200); // let the last server events arrive
     results.set(s.id, { outcome, log, mode });
   } catch (e) {
     results.set(s.id, { outcome: null, log, mode, error: e instanceof Error ? e.message : String(e) });
@@ -188,6 +244,7 @@ async function sendConsole(): Promise<void> {
   let text = consoleText;
   const log: Exchange[] = [];
   running = true;
+  startLive(log);
   render();
   try {
     if (text.includes("{{token}}")) {
@@ -205,6 +262,7 @@ async function sendConsole(): Promise<void> {
     else if (!req.path.startsWith("/api/")) consoleResult = { log, error: t(UI.pathError) };
     else {
       await sender([...consoleVulns], log)(req, { key: true });
+      await sleep(150);
       consoleResult = { log };
     }
   } catch (e) {
@@ -276,6 +334,57 @@ function logHtml(log: Exchange[]): string {
   return `<div class="log"><p class="count">${log.length} ${t(UI.requests)}</p>${head.map(({ x, i }) => exchangeHtml(x, i, log.length)).join("")}${more}${tail.map(({ x, i }) => exchangeHtml(x, i, log.length)).join("")}</div>`;
 }
 
+function liveHtml(): string {
+  if (!liveOn) return "";
+  return `<section class="live" id="live">${liveInner()}</section>`;
+}
+
+const money = (n: number) => "$" + n.toLocaleString("es-CO");
+
+function liveInner(): string {
+  const rows = liveStream
+    .map((x, i) => `<li class="${i === liveStream.length - 1 ? "new" : ""}"><span class="m">${esc(x.req.method)}</span><span class="p">${esc(x.req.path)}</span><span class="st ${statusClass(x.res.status)}">${x.res.status}</span></li>`)
+    .join("");
+  const events = liveEvents
+    .map((e, i) => `<li class="lv-${e.level}${i === liveEvents.length - 1 ? " new" : ""}"><span class="tm">+${(e.at / 1000).toFixed(2)}s</span><span>${esc(t(e.msg))}</span></li>`)
+    .join("");
+  const s = snap;
+  const p = prevSnap;
+  const users = (roster.length ? roster : s?.users ?? [])
+    .map((u) => {
+      const now = s?.users.find((x) => x.id === u.id);
+      const before = p?.users.find((x) => x.id === u.id);
+      const gone = s && !now;
+      const roleChanged = now && now.role !== u.role;
+      const flash = (p && before && !now) || (now && before && now.role !== before.role) ? " chg" : "";
+      return `<tr class="${gone ? "gone" : ""}${flash}"><td>${u.id}</td><td>${esc(u.username)}</td><td class="${roleChanged ? "hot" : ""}">${gone ? t(UI.deleted) : esc(now?.role ?? u.role)}</td></tr>`;
+    })
+    .join("");
+  const bal = s?.wallets[2] ?? 0;
+  const balChg = p && (p.wallets[2] ?? 0) !== bal ? " chg" : "";
+  const lg = s?.logins.mateo;
+  const lgChg = p && JSON.stringify(p.logins.mateo) !== JSON.stringify(lg) ? " chg" : "";
+  const segs = Array.from({ length: 5 }, (_, i) => `<i class="${(lg?.failures ?? 0) > i ? "on" : ""}"></i>`).join("");
+  return `<div class="lv-col atk"><h3>${t(UI.attacker)}</h3>${rows ? `<ol class="stream">${rows}</ol>` : `<p class="wait">${t(UI.waiting)}</p>`}</div>
+  <div class="lv-col srv"><h3>${t(UI.server)}</h3>
+    <div class="db">
+      <table class="tbl"><caption>${t(UI.users)}</caption><tbody>${users}</tbody></table>
+      <div class="tiles">
+        <div class="tile${balChg}"><span>${t(UI.balance)}</span><b class="${(s?.couponCredits ?? 0) > 1 ? "hot" : ""}">${money(bal)}</b><small>${s?.couponCredits ?? 0} ${t(UI.credits)}</small></div>
+        <div class="tile${lgChg}"><span>${t(UI.failures)}</span><b class="${(lg?.failures ?? 0) > 5 ? "hot" : ""}">${lg?.failures ?? 0}</b><small class="segs">${segs}${lg?.lockedSeconds ? ` ${t(UI.locked).replace("{s}", String(lg.lockedSeconds))}` : ""}</small></div>
+      </div>
+    </div>
+    ${events ? `<ol class="slog">${events}</ol>` : ""}
+  </div>`;
+}
+
+function renderLive(): void {
+  const el = document.getElementById("live");
+  if (!el) return;
+  el.innerHTML = liveInner();
+  for (const box of el.querySelectorAll<HTMLElement>(".slog, .stream")) box.scrollTop = box.scrollHeight;
+}
+
 function navHtml(): string {
   const items = SCENARIOS.map((s) => {
     const r = results.get(s.id);
@@ -304,8 +413,10 @@ function scenarioHtml(s: Scenario): string {
         <button role="radio" data-mode="fixed" aria-checked="${mode === "fixed"}">${t(UI.fixed)}</button>
       </div>
       <button id="launch" class="launch ${mode}"${running ? " disabled" : ""}>${running ? `${t(UI.running)} ${progress}` : t(UI.launch)}</button>
+      ${slowHtml()}
     </div>
     ${verdict}
+    ${liveHtml()}
     ${r ? logHtml(r.log) : ""}
     <section class="fix">
       <h3>${t(UI.theFix)}</h3>
@@ -316,6 +427,10 @@ function scenarioHtml(s: Scenario): string {
       </div>
     </section>
   </article>`;
+}
+
+function slowHtml(): string {
+  return `<label class="slow"><input type="checkbox" id="slow"${slow ? " checked" : ""}><span>${t(UI.slow)}</span></label>`;
 }
 
 function consoleHtml(): string {
@@ -331,8 +446,9 @@ function consoleHtml(): string {
     <label class="sr" for="raw">${t(UI.request)}</label>
     <textarea id="raw" spellcheck="false" rows="8">${esc(consoleText)}</textarea>
     <fieldset class="flaws"><legend>${t(UI.flaws)}</legend>${boxes}</fieldset>
-    <div class="controls"><button id="send" class="launch vulnerable"${running ? " disabled" : ""}>${t(UI.send)}</button><button id="reset" class="ghost">${t(UI.reset)}</button><span class="note" role="status">${esc(consoleNote)}</span></div>
+    <div class="controls"><button id="send" class="launch vulnerable"${running ? " disabled" : ""}>${t(UI.send)}</button><button id="reset" class="ghost">${t(UI.reset)}</button>${slowHtml()}<span class="note" role="status">${esc(consoleNote)}</span></div>
     ${res?.error ? `<div class="verdict err" role="status">${esc(res.error)}</div>` : ""}
+    ${liveHtml()}
     ${res ? logHtml(res.log) : ""}
   </article>`;
 }
@@ -361,6 +477,7 @@ function render(): void {
   </main>
   <footer class="foot"><div class="wrap"><p>${t(UI.credit)}</p><p><a href="${REPO}" rel="noopener">${t(UI.source)}</a></p></div></footer>`;
   window.scrollTo(0, scrollY);
+  for (const box of app.querySelectorAll<HTMLElement>(".slog, .stream")) box.scrollTop = box.scrollHeight;
   const on = app.querySelector<HTMLElement>(".tab.on");
   const strip = app.querySelector<HTMLElement>(".tabs");
   if (on && strip && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = on.offsetLeft - 16;
@@ -382,6 +499,7 @@ document.addEventListener("click", (e) => {
   } else if (el.dataset.tab) {
     if (running) return;
     current = el.dataset.tab;
+    liveOn = false;
     render();
     document.querySelector(".stage")?.scrollIntoView({ block: "nearest" });
   } else if (el.dataset.mode) {
@@ -402,6 +520,10 @@ document.addEventListener("input", (e) => {
 
 document.addEventListener("change", (e) => {
   const el = e.target as HTMLInputElement;
+  if (el.id === "slow") {
+    slow = el.checked;
+    return;
+  }
   const v = el.dataset.vuln as Vuln | undefined;
   if (!v) return;
   if (el.checked) consoleVulns.add(v);

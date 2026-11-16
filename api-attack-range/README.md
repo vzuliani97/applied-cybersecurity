@@ -5,7 +5,7 @@ Live demo: **https://valterzuliani.com/range/**
 Part of [Applied Cyber Security](../README.md): the assessment there tested my own systems; this lab turns the same
 API attacks into something anyone can run, flaw by flaw.
 
-An attack range for the OWASP API Security Top 10 (2023). Each flaw has a switch: attack it while it is **vulnerable**, flip it to **fixed**, attack again and watch the request bounce. The page shows every raw request and response, plus the lines of code that make the difference.
+An attack range for the OWASP API Security Top 10 (2023). Each flaw has a switch: attack it while it is **vulnerable**, flip it to **fixed**, attack again and watch the request bounce. While the attack runs, the page shows it live from both sides: the attacker's requests as they leave, and the server's decisions as it makes them ("order 1003 belongs to mateo and was handed to lucia without an owner check"), next to its data changing (a role turning admin, a deleted account, a balance climbing). Afterwards you get every raw request and response, plus the lines of code that make the difference.
 
 | OWASP | Attack | What the fix does |
 |---|---|---|
@@ -29,7 +29,7 @@ Requires Node 22.18 or later (TypeScript runs directly through Node's type strip
 ```sh
 cd api-attack-range
 npm install
-npm test          # 25 tests: every attack in both modes, cross-flaw isolation, legitimate use
+npm test          # 32 tests: every attack in both modes, the server's narration, cross-flaw isolation, legitimate use
 npm run build     # bundles the page and the service worker into dist/
 npm start         # same API as a real HTTP server on 127.0.0.1:8787, for curl / Burp / Postman
 ```
@@ -49,7 +49,7 @@ src/core/api.ts         the API: routes, each flaw and its fix side by side
 src/core/jwt.ts         HS256 with Web Crypto, plus the alg:none flaw
 src/core/password.ts    PBKDF2-SHA256, 600,000 iterations (OWASP guidance)
 src/core/scenarios.ts   the six attacks, shared by the page and the tests
-src/sw.ts               service worker that serves the API in the browser
+src/sw.ts               service worker that serves the API and streams its events to the page
 src/server.ts           the same API on node:http
 src/web/                the attack page
 test/range.test.ts      node:test suite

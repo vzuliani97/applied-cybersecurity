@@ -5,6 +5,7 @@ import { createRange } from "./core/api.ts";
 
 interface FetchEventLike {
   request: Request;
+  clientId: string;
   respondWith(r: Promise<Response>): void;
 }
 interface ExtendableEventLike {
@@ -14,7 +15,7 @@ const sw = self as unknown as {
   location: Location;
   registration: { scope: string };
   skipWaiting(): Promise<void>;
-  clients: { claim(): Promise<void> };
+  clients: { claim(): Promise<void>; get(id: string): Promise<{ postMessage(m: unknown): void } | undefined> };
   addEventListener(type: "install" | "activate", fn: (e: ExtendableEventLike) => void): void;
   addEventListener(type: "fetch", fn: (e: FetchEventLike) => void): void;
 };
@@ -34,12 +35,12 @@ sw.addEventListener("fetch", (e) => {
       const headers: Record<string, string> = {};
       e.request.headers.forEach((v, k) => (headers[k] = v));
       const body = e.request.method === "GET" || e.request.method === "HEAD" ? undefined : await e.request.text();
-      const out = await range.handle({
-        method: e.request.method,
-        path: url.pathname.slice(scope.length - 1) + url.search,
-        headers,
-        body,
-      });
+      // Every decision the server makes is streamed to the page that sent the request.
+      const client = e.clientId ? await sw.clients.get(e.clientId) : undefined;
+      const out = await range.handle(
+        { method: e.request.method, path: url.pathname.slice(scope.length - 1) + url.search, headers, body },
+        (ev) => client?.postMessage({ type: "range-event", ev }),
+      );
       return new Response(out.status === 204 ? null : out.body, {
         status: out.status,
         headers: { ...out.headers, "x-served-by": "service-worker" },
