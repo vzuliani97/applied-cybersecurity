@@ -1,6 +1,7 @@
 # Applied Cyber Security
 
 [![Attack suite](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml)
+[![API attack range](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/range.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/range.yml)
 
 Three units of my Advanced Diploma of Information Technology (Cyber Security), ICT60220, applied to the systems I
 built: [NekoBet](https://github.com/vzuliani97/nekobet), [Yamesi](https://github.com/vzuliani97/yamesi) and the
@@ -12,6 +13,14 @@ IDs keep its `ESC` prefix.
 | ICTCYS603 Undertake penetration testing for organisations | A gray-box penetration test: [findings](#findings), [methodology](METHODOLOGY.md) and [the attacks as tests](attacks/) | 12 findings, all fixed; 38 attacks run in both apps' CI |
 | ICTCYS608 Perform cyber security risk assessments | [Risk register](RISK_REGISTER.md) | 12 risks rated before and after controls; 1 High, 5 Medium and 6 Low remain, each with a treatment |
 | ICTCYS604 Implement best practices for identity management | [Identity and access review](IDENTITY_REVIEW.md) | 10 identities, people and machines, with what holds up and 5 recommendations |
+
+**Live lab: [API attack range](api-attack-range/).** Six flaws from the OWASP API Security Top 10 (BOLA, JWT
+`alg: none`, mass assignment, brute force, BFLA and a coupon race condition), each with a switch between
+vulnerable and fixed. Anyone can attack them at **[valterzuliani.com/range](https://valterzuliani.com/range/)**:
+the API runs inside the visitor's browser through a service worker, with fictional data, so nothing vulnerable
+is exposed online. Several of its fixes are the ones this assessment confirmed in NekoBet and Yamesi
+(`alg: none` rejected, ESC-11's lockout, the balance updated in one step). 25 tests run in
+[its own CI](.github/workflows/range.yml).
 
 **Scope and limits.** The targets are three portfolio systems I wrote. They run locally with synthetic data:
 no production system, no third-party target, and no TLS (the stacks serve plain HTTP on localhost). The
@@ -131,6 +140,7 @@ Every risk that is accepted or still open, including the ones below, is rated an
 METHODOLOGY.md   scope, threat model, coverage, tools, severity, limits
 findings/        one file per finding: evidence, impact, fix, regression tests
 attacks/         the attacks as tests (node:test), plus lib.mjs with JWT, HMAC, EXIF and startup helpers
+api-attack-range/ the live OWASP API Top 10 lab (TypeScript, service worker, node:test)
 ```
 
 ## Portfolio
