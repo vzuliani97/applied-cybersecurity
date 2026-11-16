@@ -127,12 +127,12 @@ let pageRange: ReturnType<typeof createRange> | null = null;
 
 function initialLang(): Lang {
   try {
-    const saved = localStorage.getItem("vz-lang");
+    const saved = localStorage.getItem("vz-lang-choice");
     if (saved === "es" || saved === "en") return saved;
   } catch {
     /* storage may be unavailable */
   }
-  return (navigator.language || "es").toLowerCase().startsWith("es") ? "es" : "en";
+  return "en"; // English by default, like the rest of valterzuliani.com
 }
 
 const t = (l: L) => l[lang];
@@ -491,7 +491,7 @@ document.addEventListener("click", (e) => {
   if (el.dataset.lang) {
     lang = el.dataset.lang as Lang;
     try {
-      localStorage.setItem("vz-lang", lang);
+      localStorage.setItem("vz-lang-choice", lang);
     } catch {
       /* ignore */
     }
