@@ -1,0 +1,63 @@
+name: Cloud breach range
+
+on:
+  push:
+    branches: [main]
+    paths: ["cloud-breach-range/**", ".github/workflows/cloud-range.yml"]
+  pull_request:
+    paths: ["cloud-breach-range/**", ".github/workflows/cloud-range.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lab:
+    name: Typecheck, tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloud-breach-range
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  terraform:
+    name: Terraform validate and Checkov gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloud-breach-range/terraform
+    env:
+      # The Checkov checks that map to the attack chain.
+      CHAIN_CHECKS: CKV_AWS_79,CKV_AWS_288,CKV_AWS_289,CKV_AWS_290,CKV_AWS_355,CKV2_AWS_6,CKV_AWS_36,CKV_AWS_67,CKV_AWS_35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+      - name: Validate both stacks
+        run: |
+          for d in vulnerable fixed; do
+            terraform -chdir=$d init -backend=false -input=false
+            terraform -chdir=$d validate
+          done
+      - run: pipx install checkov
+      - name: The fixed stack passes every chain check
+        run: checkov -d fixed --check "$CHAIN_CHECKS" --compact
+      - name: The vulnerable stack fails them, so the scanner sees what the lab exploits
+        run: |
+          if checkov -d vulnerable --check "$CHAIN_CHECKS" --compact --quiet; then
+            echo "Checkov found nothing in the vulnerable stack" >&2
+            exit 1
+          fi
