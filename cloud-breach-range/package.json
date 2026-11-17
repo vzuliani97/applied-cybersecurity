@@ -1,0 +1,19 @@
+{
+  "name": "cloud-breach-range",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live AWS attack chain lab: SSRF to instance metadata to an over-privileged role to S3. Switch each control on and watch the chain break.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}
