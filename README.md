@@ -2,6 +2,7 @@
 
 [![Attack suite](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/ci.yml)
 [![API attack range](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/range.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/range.yml)
+[![Cloud breach range](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/cloud-range.yml/badge.svg)](https://github.com/vzuliani97/applied-cybersecurity/actions/workflows/cloud-range.yml)
 
 Three units of my Advanced Diploma of Information Technology (Cyber Security), ICT60220, applied to the systems I
 built: [NekoBet](https://github.com/vzuliani97/nekobet), [Yamesi](https://github.com/vzuliani97/yamesi) and the
@@ -22,11 +23,19 @@ is exposed online. Several of its fixes are the ones this assessment confirmed i
 (`alg: none` rejected, ESC-11's lockout, the balance updated in one step). While an attack runs, the page shows the server's decisions and its data changing live. 32 tests run in
 [its own CI](.github/workflows/range.yml).
 
+**Live lab: [Cloud breach range](cloud-breach-range/).** The AWS attack chain behind the 2019 Capital One
+breach: an SSRF in a link preview reaches the instance metadata service, takes the role's credentials and uses
+them from outside AWS to download customer data from S3. Five defences (URL allowlist, IMDSv2, least privilege,
+a VPC endpoint bucket policy, GuardDuty with automatic session revocation) can be switched on alone or together
+at **[valterzuliani.com/cloud](https://valterzuliani.com/cloud/)**, with a real IAM policy evaluator and signed
+requests underneath. The vulnerable and fixed stacks are in Terraform; CI validates both and uses Checkov as a
+gate: the fixed stack must pass the chain's checks and the vulnerable one must fail them.
+
 **Scope and limits.** The targets are three portfolio systems I wrote. They run locally with synthetic data:
 no production system, no third-party target, and no TLS (the stacks serve plain HTTP on localhost). The
 testing is gray-box, with the source code available. It covers the categories in
 [METHODOLOGY.md](METHODOLOGY.md); denial of service, an active scan, manual XSS testing and the undeployed AWS
-infrastructure are out of scope.
+infrastructure are out of scope (the cloud breach range simulates AWS and never touches a real account).
 
 ## Findings
 
